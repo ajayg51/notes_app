@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Task - 2</title>
+
+  <!-- BABEL Don't use this in production: -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- reactJS -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin>
+  </script>
+
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin>
+  </script>
+
+  <!-- mysql -->
+  <script src="https://cdn.jsdelivr.net/npm/mysql@2.18.1/index.min.js"></script>
+
+
+  <!--
+    Note: this page is a great way to try React but it's not suitable for production.
+    It slowly compiles JSX with Babel in the browser and uses a large development build of React.
+  -->
+
+  <link rel="stylesheet" href="index.css">
+
+
+
+
+
+</head>
+
+<body>
+  <!-- <button id="btn" onclick="postDataToDB()">Check DB</button>
+   -->
+
+  <div id="modal"></div>
+  <div id="root"></div>
+
+
+  <script defer type="text/babel">
+
+
+    const rootDiv = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootDiv);
+
+
+
+
+
+    let noteTitle = ""
+    let noteDesc = ""
+
+    let dbNoteList = [];
+
+
+
+    const Loader = () => {
+      return <div id="loader"></div>;
+    }
+
+
+    root.render(<Loader />)
+
+
+    const getDbNotes = async () => {
+      console.log("get-notes api is being called");
+      await fetch("http://localhost:3000/get-notes",
+        {
+          method: "GET",
+
+        }).then(response => response.json())
+        .then(data => {
+          dbNoteList = data;
+          console.log(dbNoteList);
+
+          setTimeout(() => {
+            root.render(<NotesApp />)
+          }, 1000)
+
+
+        }).catch(error => {
+          console.log("Error", error)
+        })
+    }
+
+    const deleteDbNotes = async (noteId) => {
+      console.log("delete-notes api is being called");
+
+      root.render(<Loader />);
+
+      await fetch("http://localhost:3000/delete-note",
+        {
+          method: "DELETE",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            "id": noteId
+          })
+
+        }).then(response => response.json())
+        .then(data => {
+          console.log("Data")
+          console.log(data)
+          getDbNotes();
+
+        }).catch(error => {
+          console.log("Error")
+          console.log(error)
+        })
+    }
+
+
+
+    // getting dbNotes when page is loaded
+    setTimeout(getDbNotes, 0);
+
+    const addNoteToLocalStorage = () => {
+      console.log("post-note api is being called");
+
+      const curTimestamp = new Date().toLocaleString(
+        "en-Us",
+        { timeZone: 'Asia/Kolkata' }
+      );
+
+
+      fetch(
+        'http://localhost:3000/post-note',
+        {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+
+          body: JSON.stringify({
+            "note_title": noteTitle,
+            "note_desc": noteDesc,
+            "note_timestamp": curTimestamp
+          })
+        }).then(response => {
+          if (!response.ok) {
+            console.log("Status code", response.status)
+            return;
+          }
+          return response.json();
+        }).then(data => {
+          console.log("data")
+          console.log(data)
+
+
+          root.render(<div id="loader"></div>);
+          getDbNotes();
+
+
+          const modalDiv = document.getElementById("modal");
+          modalDiv.innerHTML = "";
+          console.log("Closed modal");
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+
+
+    }
+
+
+
+
+
+    const Modal = () => {
+      const onModalContainerTap = () => {
+        const modalDiv = document.getElementById("modal");
+        modalDiv.innerHTML = "";
+        console.log("Closed modal");
+
+      }
+
+
+      // const addNoteToLocalStorage = () => {
+
+      //   console.log("title", noteTitle)
+      //   console.log("desc", noteDesc)
+
+      // }
+
+      const onNoteTitleChange = (event) => {
+        noteTitle = event.currentTarget.value;
+        console.log("Note title", noteTitle);
+      }
+
+      const onNoteDescChange = (event) => {
+        noteDesc = event.currentTarget.value;
+        console.log("Note Desc", noteDesc);
+      }
+
+      return <>
+        <div className="modal-container" onClick={onModalContainerTap}>
+        </div>
+        <div className="modal">
+          <div className="modal-content">
+            <div id="modal-header">
+
+              <input onChange={onNoteTitleChange}
+
+                id="modal-note-title"
+                placeholder="Enter note title"></input>
+
+              <img src="assets/close_icon.png" id="close-modal" onClick={onModalContainerTap}>
+
+              </img>
+
+            </div>
+
+            <textarea id="modal-note-description"
+              onChange={onNoteDescChange}
+              rows="20" cols="80"
+              placeholder="Enter note description">
+
+            </textarea>
+
+            <div id="modal-add-note-btn">
+
+              <div id="add-note-btn" onClick={addNoteToLocalStorage}>
+                Add note
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </>
+    }
+
+    const TakeNote = () => {
+
+      const onInputTap = () => {
+        console.log('input tapped');
+        const modalDiv = document.getElementById("modal");
+        const root = ReactDOM.createRoot(modalDiv);
+        root.render(<Modal />)
+      }
+
+      return <input id="input-note"
+        readOnly="readOnly"
+        onClick={onInputTap}
+        placeholder="Take a note..." />
+    }
+
+    const Note = ({ note }) => {
+      return <div id="child">
+        <div id="child-content">
+          <div id="note-title">
+            {note.note_title}
+
+          </div>
+
+          <div id="note-desc">
+            <p>
+              {note.note_desc}
+
+            </p>
+
+          </div>
+
+          <div id="note-timestamp">
+            <p id="note-created-at">Created at</p>
+            <p >
+
+              {note.note_timestamp}
+
+            </p>
+
+          </div>
+
+          <div id="delete-icon">
+            <img onClick={() =>
+              deleteDbNotes(note.id)
+            } id="delete-icon-height" src="assets/delete_icon.jpeg" />
+          </div>
+        </div>
+
+      </div>
+    }
+
+
+    let Content = () => {
+      setTimeout(() => {
+        console.log(dbNoteList.length);
+
+        if (dbNoteList.length < 2) {
+
+          const contentChildrenDiv =
+            document.getElementById("children");
+          // contentChildrenDiv.style.backgroundColor = "red"
+          contentChildrenDiv.style.display = "flex"
+          contentChildrenDiv.style.justifyContent = "center";
+        }
+      }, 0)
+
+      if (dbNoteList.length > 0) {
+        return dbNoteList.map((note, index) => {
+          return <Note key={index} note={note} />
+        })
+      }
+
+
+
+
+
+      return <figure>
+        <div id="empty-note-id" >
+          <img id="empty-note-id" src="assets/empty_note.jpg" />
+        </div>
+
+        <figcaption id="empty-note-figcaption">Please add a note</figcaption>
+      </figure>
+    }
+
+
+    const NotesApp = () => {
+
+
+      return <>
+        <div id="nav-bar">
+          Notes
+        </div>
+        <div id="content">
+          <TakeNote />
+        </div>
+
+        <div id="notes-container">
+          <div id="children">
+            <Content />
+          </div>
+
+
+
+        </div>
+
+      </>
+    }
+
+
+
+    const observer = new ResizeObserver(
+      entries => {
+        for (const entry of entries) {
+          const newWidth = entry.contentRect.width;
+
+          // console.log('The screen width has changed to ' + newWidth);
+          // console.log('valu : ' + (newWidth < 1200));
+
+          if (newWidth < 1200) {
+
+            root.render(
+              <p id="mobile-screen-info">
+                  Please use a bigger screen.
+              </p>
+            );
+
+          } else {
+            setTimeout(() => {
+              root.render(<NotesApp />)
+            }, 2000);
+          }
+
+
+        }
+      });
+    observer.observe(document.body);
+
+
+
+
+
+
+  </script>
+</body>
+
+</html>
