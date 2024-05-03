@@ -7,7 +7,7 @@ https://github.com/ajayg51/notes_app/assets/60037249/772e9ccf-cd53-4c21-8c43-65e
 ##  Tech Stack
 ```
 
-  $  ReactJS
+  $  ReactJS --- using ReactJS CDN link
   $  NodeJS
   $  SQL
 
